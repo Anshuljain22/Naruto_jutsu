@@ -1,178 +1,222 @@
+// Generate a unique session ID for this visitor so each person gets
+// their own independent gesture + effect state on the backend.
+const SESSION_ID = crypto.randomUUID();
+
+const BACKEND_URL = window.location.origin;
+
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
-const videoFeed = document.getElementById('video-feed');
+const canvas = document.getElementById('video-canvas');
+const ctx = canvas.getContext('2d');
 const videoPlaceholder = document.getElementById('video-placeholder');
 const hudBox = document.getElementById('ar-hud');
 const hudText = document.getElementById('hud-text');
 
-let pollingInterval = null;
-// Use the same origin the page was served from (works for both localhost and ngrok)
-const BACKEND_URL = window.location.origin;
-
-// Jutsu sound — served by Flask from the project root
+// Jutsu sound
 const jutsuAudio = new Audio(`${BACKEND_URL}/naurtoi.m4a`);
 jutsuAudio.volume = 0.85;
 let jutsuWasActive = false;
 
-// Wrapper that adds the ngrok browser-warning bypass header (harmless on localhost)
-async function apiFetch(path, options = {}) {
-    const headers = { 'ngrok-skip-browser-warning': '1', ...(options.headers || {}) };
+// Internal state
+let videoStream = null;   // MediaStream from getUserMedia
+let videoEl = null;   // hidden <video> element driving the capture loop
+let captureActive = false;  // controls the frame-sending loop
+let pollingInterval = null;
+
+// Helper: adds ngrok bypass header + session ID to every request
+function apiFetch(path, options = {}) {
+    const headers = {
+        'ngrok-skip-browser-warning': '1',
+        'X-Session-ID': SESSION_ID,
+        ...(options.headers || {}),
+    };
     return fetch(`${BACKEND_URL}${path}`, { ...options, headers });
 }
 
+// ---------------------------------------------------------------------------
+// Start button — request user's webcam, start capture loop
+// ---------------------------------------------------------------------------
 startBtn.addEventListener('click', async () => {
     try {
         startBtn.disabled = true;
         startBtn.textContent = 'Starting...';
 
-        const response = await apiFetch('/api/start', { method: 'POST' });
-        if (!response.ok) throw new Error('API call failed');
+        // Ask for webcam access
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+            audio: false,
+        });
 
-        // Wait up to 3 seconds to confirm the engine actually started (camera opened)
-        let confirmed = false;
-        for (let i = 0; i < 6; i++) {
-            await new Promise(r => setTimeout(r, 500));
-            const statusRes = await apiFetch('/api/status');
-            const data = await statusRes.json();
-            if (data.running) { confirmed = true; break; }
-        }
+        // Create hidden video element to draw from
+        videoEl = document.createElement('video');
+        videoEl.srcObject = videoStream;
+        videoEl.playsInline = true;
+        await videoEl.play();
 
-        if (!confirmed) {
-            // Camera failed to open — reset UI
-            startBtn.disabled = false;
-            startBtn.textContent = 'Start Camera';
-            alert('Could not open camera. Make sure no other app is using it, then try again.');
-            return;
-        }
+        // Size canvas to match video
+        canvas.width = videoEl.videoWidth || 1280;
+        canvas.height = videoEl.videoHeight || 720;
 
-        // Engine is running — update UI
+        // Show canvas, hide placeholder
+        videoPlaceholder.style.display = 'none';
+        canvas.style.display = 'block';
+
         startBtn.textContent = 'Start Camera';
         stopBtn.disabled = false;
 
-        // Show video stream
-        videoPlaceholder.style.display = 'none';
-        videoFeed.style.display = 'block';
-        videoFeed.src = `${BACKEND_URL}/video_feed?t=${new Date().getTime()}`;
+        // Start sending frames to backend
+        captureActive = true;
+        captureLoop();
 
-        // Start polling for Jutsu status
+        // Start polling for jutsu status (HUD + cards)
         startPolling();
+
     } catch (err) {
-        console.error("Failed to start engine:", err);
+        console.error('Failed to start camera:', err);
         startBtn.disabled = false;
         startBtn.textContent = 'Start Camera';
-        alert("Could not connect to the Python AR Engine. Is app.py running?");
+        if (err.name === 'NotAllowedError') {
+            alert('Camera permission denied. Please allow camera access and try again.');
+        } else {
+            alert('Could not access your camera: ' + err.message);
+        }
     }
 });
 
-stopBtn.addEventListener('click', async () => {
-    try {
-        await apiFetch('/api/stop', { method: 'POST' });
+// ---------------------------------------------------------------------------
+// Stop button
+// ---------------------------------------------------------------------------
+stopBtn.addEventListener('click', () => {
+    captureActive = false;
+    stopPolling();
 
-        // Update UI
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-
-        // Hide stream
-        videoFeed.src = "";
-        videoFeed.style.display = 'none';
-        videoPlaceholder.style.display = 'block';
-        hudBox.style.display = 'none';
-
-        // Stop polling
-        stopPolling();
-        clearActiveCards();
-
-    } catch (err) {
-        console.error("Failed to stop engine:", err);
+    if (videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
     }
+
+    canvas.style.display = 'none';
+    videoPlaceholder.style.display = 'flex';
+    hudBox.style.display = 'none';
+    clearActiveCards();
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+
+    // Reset canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
+// ---------------------------------------------------------------------------
+// Frame capture loop — draw video → canvas → send to backend → display result
+// ---------------------------------------------------------------------------
+async function captureLoop() {
+    if (!captureActive || !videoEl) return;
+
+    // Draw current webcam frame onto canvas
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+    // Get JPEG blob from canvas
+    canvas.toBlob(async (blob) => {
+        if (!blob || !captureActive) {
+            if (captureActive) requestAnimationFrame(captureLoop);
+            return;
+        }
+
+        try {
+            const arrayBuffer = await blob.arrayBuffer();
+            const resp = await fetch(`${BACKEND_URL}/api/process_frame`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'image/jpeg',
+                    'ngrok-skip-browser-warning': '1',
+                    'X-Session-ID': SESSION_ID,
+                },
+                body: arrayBuffer,
+            });
+
+            if (resp.ok) {
+                const processedBlob = await resp.blob();
+                const url = URL.createObjectURL(processedBlob);
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(url);
+                    if (captureActive) requestAnimationFrame(captureLoop);
+                };
+                img.src = url;
+            } else {
+                if (captureActive) requestAnimationFrame(captureLoop);
+            }
+        } catch (e) {
+            console.warn('Frame send error:', e);
+            if (captureActive) requestAnimationFrame(captureLoop);
+        }
+    }, 'image/jpeg', 0.8);
+}
+
+// ---------------------------------------------------------------------------
+// Status polling (HUD + card highlights)
+// ---------------------------------------------------------------------------
 function startPolling() {
     if (pollingInterval) return;
-
-    // Poll the status endpoint every 200ms
     pollingInterval = setInterval(async () => {
         try {
-            const response = await apiFetch('/api/status');
-            const data = await response.json();
-
+            const resp = await apiFetch('/api/status');
+            const data = await resp.json();
             updateHUD(data);
             updateLibraryCards(data.current_jutsu, data.status_text);
-
-        } catch (err) {
-            console.error("Polling error:", err);
-        }
+        } catch (e) { /* ignore */ }
     }, 200);
 }
 
 function stopPolling() {
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-        pollingInterval = null;
-    }
+    if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
 }
 
 function updateHUD(data) {
-    const isActive = data.status_text && data.status_text.includes("ACTIVE");
+    const isActive = data.status_text && data.status_text.includes('ACTIVE');
 
-    // Play sound once when jutsu first becomes ACTIVE
     if (isActive && !jutsuWasActive) {
         jutsuAudio.currentTime = 0;
-        jutsuAudio.play().catch(e => console.warn('Audio play blocked:', e));
+        jutsuAudio.play().catch(e => console.warn('Audio blocked:', e));
         jutsuWasActive = true;
     } else if (!isActive && jutsuWasActive) {
-        // Jutsu ended — stop audio
         jutsuAudio.pause();
         jutsuAudio.currentTime = 0;
         jutsuWasActive = false;
     }
 
-    if (!data.status_text || data.status_text === "Ready") {
+    if (!data.status_text || data.status_text === 'Ready') {
         hudBox.style.display = 'none';
         return;
     }
-
     hudBox.style.display = 'block';
     hudText.innerText = data.status_text;
-
-    // Reset classes
-    hudBox.className = "hud-box";
-
-    if (data.status_text.includes("FOCUSING")) {
-        hudBox.classList.add("hud-focusing");
+    hudBox.className = 'hud-box';
+    if (data.status_text.includes('FOCUSING')) {
+        hudBox.classList.add('hud-focusing');
     } else if (isActive) {
-        hudBox.classList.add("hud-active");
+        hudBox.classList.add('hud-active');
     }
 }
 
 function updateLibraryCards(currentJutsu, statusText) {
     clearActiveCards();
-
-    // current_jutsu comes from backend as e.g., 'shadow_clone', 'rasengan'
-    if (currentJutsu) {
-        const cardId = `card-${currentJutsu}`;
-        const card = document.getElementById(cardId);
-
-        if (card) {
-            card.classList.add('active');
-
-            // Add a little pulse animation if it's actively casting
-            if (statusText && statusText.includes("ACTIVE")) {
-                card.style.transform = "translateX(-15px) scale(1.05)";
-                card.style.boxShadow = "0 0 20px rgba(255, 51, 102, 0.5)";
-            } else {
-                card.style.transform = "";
-                card.style.boxShadow = "";
-            }
-        }
+    if (!currentJutsu) return;
+    const card = document.getElementById(`card-${currentJutsu}`);
+    if (!card) return;
+    card.classList.add('active');
+    if (statusText && statusText.includes('ACTIVE')) {
+        card.style.transform = 'translateX(-15px) scale(1.05)';
+        card.style.boxShadow = '0 0 20px rgba(255, 51, 102, 0.5)';
     }
 }
 
 function clearActiveCards() {
-    const cards = document.querySelectorAll('.jutsu-card');
-    cards.forEach(card => {
+    document.querySelectorAll('.jutsu-card').forEach(card => {
         card.classList.remove('active');
-        card.style.transform = "";
-        card.style.boxShadow = "";
+        card.style.transform = '';
+        card.style.boxShadow = '';
     });
 }

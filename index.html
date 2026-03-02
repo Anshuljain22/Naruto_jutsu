@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jutsu Vision AR Web App</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
     <!-- Top Navigation / Title -->
@@ -23,16 +25,16 @@
 
     <!-- Main Content Area -->
     <main>
-        
+
         <!-- Video Feed Container -->
         <div class="video-container">
             <div id="video-placeholder" class="placeholder">
                 <p>Camera is Offline</p>
-                <span>Click "Start Camera" to channel your chakra.</span>
+                <span>Click "Start Camera" — you'll be asked to allow webcam access.</span>
             </div>
-            <!-- The actual video stream will be injected here -->
-            <img id="video-feed" style="display: none;" alt="AR Video Feed">
-            
+            <!-- Processed AR frames are drawn here by script.js -->
+            <canvas id="video-canvas" style="display: none;"></canvas>
+
             <!-- Floating Status HUD over the video -->
             <div id="ar-hud" class="hud-box" style="display: none;">
                 <p id="hud-text">Ready</p>
@@ -42,7 +44,7 @@
         <!-- Sidebar: Jutsu Reference Library -->
         <aside class="jutsu-library">
             <h2>Jutsu Scroll</h2>
-            
+
             <div class="jutsu-card" id="card-shadow_clone">
                 <div class="icon">👥</div>
                 <div class="info">
@@ -81,4 +83,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>
