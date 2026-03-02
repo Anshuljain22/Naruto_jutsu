@@ -1,0 +1,7 @@
+{
+  "buildCommand": "echo 'No build required for static frontend'",
+  "outputDirectory": ".",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/$1" }
+  ]
+}

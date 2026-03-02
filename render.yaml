@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: jutsu-backend
+    env: python
+    buildCommand: "pip install -r requirements.txt && python download_models.py"
+    startCommand: "gunicorn app:app -b 0.0.0.0:$PORT --workers 2"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
