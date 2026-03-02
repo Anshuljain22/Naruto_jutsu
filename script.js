@@ -6,26 +6,33 @@ const hudBox = document.getElementById('ar-hud');
 const hudText = document.getElementById('hud-text');
 
 let pollingInterval = null;
-const BACKEND_URL = 'http://127.0.0.1:5000';
+// Use the same origin the page was served from (works for both localhost and ngrok)
+const BACKEND_URL = window.location.origin;
 
 // Jutsu sound — served by Flask from the project root
 const jutsuAudio = new Audio(`${BACKEND_URL}/naurtoi.m4a`);
 jutsuAudio.volume = 0.85;
 let jutsuWasActive = false;
 
+// Wrapper that adds the ngrok browser-warning bypass header (harmless on localhost)
+async function apiFetch(path, options = {}) {
+    const headers = { 'ngrok-skip-browser-warning': '1', ...(options.headers || {}) };
+    return fetch(`${BACKEND_URL}${path}`, { ...options, headers });
+}
+
 startBtn.addEventListener('click', async () => {
     try {
         startBtn.disabled = true;
         startBtn.textContent = 'Starting...';
 
-        const response = await fetch(`${BACKEND_URL}/api/start`, { method: 'POST' });
+        const response = await apiFetch('/api/start', { method: 'POST' });
         if (!response.ok) throw new Error('API call failed');
 
         // Wait up to 3 seconds to confirm the engine actually started (camera opened)
         let confirmed = false;
         for (let i = 0; i < 6; i++) {
             await new Promise(r => setTimeout(r, 500));
-            const statusRes = await fetch(`${BACKEND_URL}/api/status`);
+            const statusRes = await apiFetch('/api/status');
             const data = await statusRes.json();
             if (data.running) { confirmed = true; break; }
         }
@@ -59,7 +66,7 @@ startBtn.addEventListener('click', async () => {
 
 stopBtn.addEventListener('click', async () => {
     try {
-        await fetch(`${BACKEND_URL}/api/stop`, { method: 'POST' });
+        await apiFetch('/api/stop', { method: 'POST' });
 
         // Update UI
         startBtn.disabled = false;
@@ -86,7 +93,7 @@ function startPolling() {
     // Poll the status endpoint every 200ms
     pollingInterval = setInterval(async () => {
         try {
-            const response = await fetch(`${BACKEND_URL}/api/status`);
+            const response = await apiFetch('/api/status');
             const data = await response.json();
 
             updateHUD(data);
