@@ -110,21 +110,39 @@ stopBtn.addEventListener('click', () => {
 // ---------------------------------------------------------------------------
 // Frame capture loop — draw video → canvas → send to backend → display result
 // ---------------------------------------------------------------------------
+let _lastFrameTime = performance.now();
+let _fps = 0;
+// Separate off-screen canvas for capturing raw frames to send to server
+const captureCanvas = document.createElement('canvas');
+const captureCtx = captureCanvas.getContext('2d');
+
 async function captureLoop() {
     if (!captureActive || !videoEl) return;
 
-    // Draw current webcam frame onto canvas
-    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    // FPS counter (drawn over whatever is currently on the visible canvas)
+    const now = performance.now();
+    _fps = Math.round(1000 / (now - _lastFrameTime));
+    _lastFrameTime = now;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(8, 8, 90, 22);
+    ctx.fillStyle = '#00ff88';
+    ctx.font = '13px monospace';
+    ctx.fillText(`${_fps} fps ↑`, 12, 24);
 
-    // Get JPEG blob from canvas
-    canvas.toBlob(async (blob) => {
-        if (!blob || !captureActive) {
-            if (captureActive) requestAnimationFrame(captureLoop);
+    // Draw webcam onto offscreen canvas for sending to server
+    captureCanvas.width = canvas.width;
+    captureCanvas.height = canvas.height;
+    captureCtx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+    captureCanvas.toBlob(async (blob) => {
+        if (!blob) {
+            // Canvas wasn't ready — try again next frame
+            if (captureActive) setTimeout(captureLoop, 100);
             return;
         }
+        if (!captureActive) return;
 
         try {
-            const arrayBuffer = await blob.arrayBuffer();
             const resp = await fetch(`${BACKEND_URL}/api/process_frame`, {
                 method: 'POST',
                 headers: {
@@ -132,7 +150,7 @@ async function captureLoop() {
                     'ngrok-skip-browser-warning': '1',
                     'X-Session-ID': SESSION_ID,
                 },
-                body: arrayBuffer,
+                body: await blob.arrayBuffer(),
             });
 
             if (resp.ok) {
@@ -140,21 +158,27 @@ async function captureLoop() {
                 const url = URL.createObjectURL(processedBlob);
                 const img = new Image();
                 img.onload = () => {
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    if (captureActive) {
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    }
+                    URL.revokeObjectURL(url);
+                    if (captureActive) requestAnimationFrame(captureLoop);
+                };
+                img.onerror = () => {
                     URL.revokeObjectURL(url);
                     if (captureActive) requestAnimationFrame(captureLoop);
                 };
                 img.src = url;
             } else {
+                console.warn('process_frame returned', resp.status);
                 if (captureActive) requestAnimationFrame(captureLoop);
             }
         } catch (e) {
             console.warn('Frame send error:', e);
-            if (captureActive) requestAnimationFrame(captureLoop);
+            if (captureActive) setTimeout(captureLoop, 200);
         }
-    }, 'image/jpeg', 0.8);
+    }, 'image/jpeg', 0.75);
 }
-
 // ---------------------------------------------------------------------------
 // Status polling (HUD + card highlights)
 // ---------------------------------------------------------------------------
