@@ -2,6 +2,8 @@
 // their own independent gesture + effect state on the backend.
 const SESSION_ID = crypto.randomUUID();
 
+// If hosting frontend on Vercel and backend elsewhere, change this to your backend URL:
+// const BACKEND_URL = 'https://your-python-backend.onrender.com';
 const BACKEND_URL = window.location.origin;
 
 const startBtn = document.getElementById('startBtn');
