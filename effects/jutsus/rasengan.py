@@ -2,6 +2,9 @@ import time
 import cv2
 import numpy as np
 import random
+import os
+
+_ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
 class RasenganEffect:
     def __init__(self, duration=5.0):
@@ -72,7 +75,7 @@ class RasenganEffect:
         result = frame.copy()
         
         if not hasattr(self, 'sprite'):
-            self.sprite = cv2.imread('assets/rasengan.png')
+            self.sprite = cv2.imread(os.path.join(_ASSET_DIR, 'rasengan.png'))
             if self.sprite is None:
                 cv2.circle(result, (self.center_x, self.center_y), current_radius, (255, 255, 200), -1)
                 return result

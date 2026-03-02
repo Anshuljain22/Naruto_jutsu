@@ -15,7 +15,7 @@ class GestureRecognizer:
         # State tracking for sustained gestures
         self.current_gesture: str | None = None
         self.gesture_start_time = 0.0
-        self.hold_threshold = 0.5 # Seconds to hold a gesture to trigger
+        self.hold_threshold = 0.3 # Seconds to hold a gesture to trigger
 
         # Velocity tracking (for Chidori/Wind Push)
         self.prev_wrist_r = None

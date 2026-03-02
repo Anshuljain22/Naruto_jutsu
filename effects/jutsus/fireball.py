@@ -1,6 +1,9 @@
 import time
 import cv2
 import numpy as np
+import os
+
+_ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
 class FireballEffect:
     def __init__(self, duration=4.0):
@@ -9,7 +12,7 @@ class FireballEffect:
         self.is_active = False
         self.mouth_x = 0
         self.mouth_y = 0
-        self.sprite = cv2.imread('assets/fireball.png')
+        self.sprite = cv2.imread(os.path.join(_ASSET_DIR, 'fireball.png'))
 
     def trigger(self, frame, pose_lms, mask):
         self.start_time = time.time()

@@ -2,6 +2,9 @@ import time
 import cv2
 import numpy as np
 import random
+import os
+
+_ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
 class ChidoriEffect:
     def __init__(self, duration=3.0):
@@ -89,7 +92,7 @@ class ChidoriEffect:
         
         # We need an image loaded
         if not hasattr(self, 'sprite'):
-            self.sprite = cv2.imread('assets/chidori.png')
+            self.sprite = cv2.imread(os.path.join(_ASSET_DIR, 'chidori.png'))
             if self.sprite is None:
                 # Fallback
                 cv2.circle(result, (self.target_wrist_x, self.target_wrist_y), 40, (255, 200, 50), -1) 
