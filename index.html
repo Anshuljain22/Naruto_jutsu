@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jutsu Vision AR Web App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Top Navigation / Title -->
+    <header>
+        <div class="logo">
+            <span class="konoha-symbol">🍃</span>
+            <h1>Jutsu Vision</h1>
+            <span class="subtitle">AR Engine</span>
+        </div>
+        <div class="controls">
+            <button id="startBtn" class="btn primary">Start Camera</button>
+            <button id="stopBtn" class="btn secondary" disabled>Stop</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+        
+        <!-- Video Feed Container -->
+        <div class="video-container">
+            <div id="video-placeholder" class="placeholder">
+                <p>Camera is Offline</p>
+                <span>Click "Start Camera" to channel your chakra.</span>
+            </div>
+            <!-- The actual video stream will be injected here -->
+            <img id="video-feed" style="display: none;" alt="AR Video Feed">
+            
+            <!-- Floating Status HUD over the video -->
+            <div id="ar-hud" class="hud-box" style="display: none;">
+                <p id="hud-text">Ready</p>
+            </div>
+        </div>
+
+        <!-- Sidebar: Jutsu Reference Library -->
+        <aside class="jutsu-library">
+            <h2>Jutsu Scroll</h2>
+            
+            <div class="jutsu-card" id="card-shadow_clone">
+                <div class="icon">👥</div>
+                <div class="info">
+                    <h3>Shadow Clone</h3>
+                    <p>Form a <strong>Plus Sign (+)</strong> with your index fingers.</p>
+                </div>
+            </div>
+
+            <div class="jutsu-card" id="card-rasengan">
+                <div class="icon">🌀</div>
+                <div class="info">
+                    <h3>Rasengan</h3>
+                    <p>Hold your open palms close together, facing each other.</p>
+                </div>
+            </div>
+
+            <div class="jutsu-card" id="card-chidori">
+                <div class="icon">⚡</div>
+                <div class="info">
+                    <h3>Chidori</h3>
+                    <p>Hold one hand up like a <strong>Claw</strong> facing the camera.</p>
+                </div>
+            </div>
+
+            <div class="jutsu-card" id="card-fireball">
+                <div class="icon">🔥</div>
+                <div class="info">
+                    <h3>Fireball</h3>
+                    <p>Bring index & middle fingers to your <strong>Lips</strong>.</p>
+                </div>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

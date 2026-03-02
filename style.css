@@ -1,0 +1,238 @@
+/* --- Global Settings --- */
+:root {
+    --bg-color: #0d0e15;
+    --panel-bg: #1a1c29;
+    --text-main: #f0f0f0;
+    --text-muted: #8b92a5;
+    
+    --accent-blue: #00d2ff;
+    --accent-orange: #ff7b00;
+    --accent-red: #ff3366;
+    
+    --glow-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* --- Header --- */
+header {
+    background-color: var(--panel-bg);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #2a2d40;
+}
+
+.logo {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.konoha-symbol {
+    font-size: 1.5rem;
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--accent-orange), #ffcc00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+/* Buttons */
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn.primary {
+    background-color: var(--accent-blue);
+    color: #000;
+    box-shadow: var(--glow-shadow);
+}
+
+.btn.primary:hover {
+    background-color: #33dcff;
+    box-shadow: 0 0 25px rgba(0, 210, 255, 0.6);
+}
+
+.btn.secondary {
+    background-color: #2a2d40;
+    color: var(--text-main);
+}
+
+.btn.secondary:hover {
+    background-color: #3f435e;
+}
+
+.btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- Main Layout --- */
+main {
+    flex: 1;
+    display: flex;
+    padding: 20px;
+    gap: 20px;
+    overflow: hidden;
+}
+
+/* --- Video Section --- */
+.video-container {
+    flex: 1;
+    background-color: #000;
+    border-radius: 12px;
+    border: 2px solid var(--panel-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.placeholder p {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+#video-feed {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Fill the box while keeping aspect ratio */
+}
+
+/* Floating HUD */
+.hud-box {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--accent-blue);
+    padding: 10px 30px;
+    border-radius: 30px;
+    box-shadow: inset 0 0 10px rgba(0, 210, 255, 0.2);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.hud-box p {
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Dynamic HUD Colors (applied via JS) */
+.hud-focusing {
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
+    box-shadow: 0 0 20px rgba(255, 123, 0, 0.4);
+}
+
+.hud-active {
+    border-color: var(--accent-red);
+    color: #fff;
+    background: rgba(200, 0, 50, 0.8);
+    box-shadow: 0 0 30px rgba(255, 51, 102, 0.6);
+}
+
+
+/* --- Sidebar / Scroll --- */
+.jutsu-library {
+    width: 350px;
+    background-color: var(--panel-bg);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto;
+}
+
+.jutsu-library h2 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #2a2d40;
+    padding-bottom: 10px;
+}
+
+.jutsu-card {
+    background-color: #212436;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.jutsu-card .icon {
+    font-size: 2rem;
+}
+
+.jutsu-card .info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    color: var(--text-main);
+}
+
+.jutsu-card .info p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Highlight Active Card */
+.jutsu-card.active {
+    background-color: #2a2d40;
+    border-left-color: var(--accent-blue);
+    transform: translateX(-5px);
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+}
