@@ -3,8 +3,7 @@
 const SESSION_ID = crypto.randomUUID();
 
 // If hosting frontend on Vercel and backend elsewhere, change this to your backend URL:
-// const BACKEND_URL = 'https://your-python-backend.onrender.com';
-const BACKEND_URL = window.location.origin;
+const BACKEND_URL = 'https://goldie22-jutsu-backend.hf.space';
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
