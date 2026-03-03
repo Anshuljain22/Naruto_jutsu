@@ -16,3 +16,4 @@ models/*.tflite
 *.py
 *.yaml
 Dockerfile
+requirements.txt
