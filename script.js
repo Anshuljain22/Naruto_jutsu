@@ -172,11 +172,23 @@ async function captureLoop() {
                 img.src = url;
             } else {
                 console.warn('process_frame returned', resp.status);
-                if (captureActive) requestAnimationFrame(captureLoop);
+                // Draw error on canvas so user knows backend is failing
+                ctx.fillStyle = 'rgba(255,0,0,0.5)';
+                ctx.fillRect(0, 0, canvas.width, 40);
+                ctx.fillStyle = 'white';
+                ctx.font = '20px sans-serif';
+                ctx.fillText(`Backend Error: ${resp.status} (Waking up?)`, 20, 28);
+                if (captureActive) setTimeout(captureLoop, 1000); // Back off
             }
         } catch (e) {
             console.warn('Frame send error:', e);
-            if (captureActive) setTimeout(captureLoop, 200);
+            // Draw error on canvas so user knows backend is failing
+            ctx.fillStyle = 'rgba(255,0,0,0.5)';
+            ctx.fillRect(0, 0, canvas.width, 40);
+            ctx.fillStyle = 'white';
+            ctx.font = '20px sans-serif';
+            ctx.fillText(`Network Error: ${e.message}`, 20, 28);
+            if (captureActive) setTimeout(captureLoop, 1000); // Back off
         }
     }, 'image/jpeg', 0.75);
 }
