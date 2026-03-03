@@ -1,0 +1,18 @@
+# Ignore backend Python environment
+venv/
+.venv/
+env/
+__pycache__/
+
+# Ignore massive AI models (Vercel only needs frontend HTML/JS/CSS)
+models/*.task
+models/*.tflite
+
+# Ignore large media/audio files not used by frontend HTML directly
+*.m4a
+*.mp4
+
+# Ignore backend source files (optional but speeds up upload)
+*.py
+*.yaml
+Dockerfile
